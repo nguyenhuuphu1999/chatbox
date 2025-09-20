@@ -2,11 +2,19 @@ import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BaseDTO } from '../base.dto';
 import { FiltersDto } from './chat.dto';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ChatImageBodyDto {
+  @ApiProperty({ description: 'User message', example: 'Tìm sản phẩm tương tự theo ảnh này' })
   @IsString() message!: string;
+
+  @ApiProperty({ description: 'Base64-encoded image' })
   @IsString() imageBase64!: string;
+
+  @ApiProperty({ description: 'MIME type of the image', example: 'image/jpeg' })
   @IsString() mimeType!: string;
+
+  @ApiPropertyOptional({ type: FiltersDto })
   @IsOptional() @ValidateNested() @Type(() => FiltersDto) filters?: FiltersDto;
 }
 
@@ -17,7 +25,10 @@ export class ChatImageDto extends BaseDTO {
 }
 
 export class ChatImageResponseDto {
+  @ApiProperty({ description: 'Assistant reply' })
   reply!: string;
+
+  @ApiProperty({ description: 'Matched products', type: [Object] })
   products!: Array<{
     id: string;
     title: string;

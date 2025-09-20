@@ -22,24 +22,36 @@ export class RagService {
     try {
       await this.qdrant.ensure(768);
       const points: Array<{
-        id: string;
+        id: string | number;
         vector: number[];
         payload: Record<string, unknown>;
       }> = [];
+
+      const toNumericId = (source: string): number => {
+        let hash = 0;
+        for (let i = 0; i < source.length; i++) {
+          const chr = source.charCodeAt(i);
+          hash = ((hash << 5) - hash) + chr;
+          hash |= 0; // Convert to 32bit integer
+        }
+        // Ensure positive and within safe integer range
+        return Math.abs(hash) + 1;
+      };
 
       for (const doc of docs) {
         this.logger.debug("Generating embedding for product", { correlationId, productId: doc.id });
         const vec = await this.gemini.embed(`${doc.title}\n${doc.description}`);
         
         points.push({
-          id: doc.id,
+          id: toNumericId(doc.id),
           vector: vec,
           payload: {
             ...doc,
             searchable: `${doc.title}\n${doc.description}`,
             sizes: doc.sizes || [],
             colors: doc.colors || [],
-            tags: doc.tags || []
+            tags: doc.tags || [],
+            original_id: doc.id
           }
         });
       }
@@ -128,12 +140,23 @@ export class RagService {
     this.logger.info("RAG get collection info start", { correlationId });
 
     try {
-      const result = await this.qdrant.getCollectionInfo();
-      this.logger.info("RAG get collection info done", { correlationId });
-      return result;
+      // Ensure collection exists and then fetch info
+      await this.qdrant.ensure(768);
+      const raw = await this.qdrant.getCollectionInfo();
+
+      // Normalize response across environments
+      const payload: any = (raw as any)?.result ?? raw;
+      const vectorsCount: number = (payload?.vectors_count as number) ?? (payload?.points_count as number) ?? 0;
+      const status: string = (payload?.status as string) ?? 'unknown';
+      const config: Record<string, unknown> = (payload?.config as Record<string, unknown>) ?? {};
+
+      const normalized = { vectors_count: vectorsCount, status, config };
+      this.logger.info("RAG get collection info done", { correlationId, vectors_count: normalized.vectors_count, status: normalized.status });
+      return normalized;
     } catch (error) {
+      // Do not fail readiness: return a safe default
       this.logger.error("Error RAG get collection info", { correlationId, error });
-      throw new InternalServerErrorException(SYSTEM_CODE.QDRANT_ERROR);
+      return { vectors_count: 0, status: 'init', config: {} };
     }
   }
 

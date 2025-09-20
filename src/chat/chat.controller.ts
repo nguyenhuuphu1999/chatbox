@@ -1,10 +1,9 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { RagService } from "../rag/rag.service";
 import { GeminiService } from "../ai/gemini.service";
 import { LoggerService } from "../logger/logger.service";
 import { SYSTEM_CODE } from '../constants/system-code.constants';
 import { ROLES, Roles } from '../decorator/auth/roles.decorator';
-import { Response } from '../decorator/response/response.decorator';
 import { User } from '../decorator/auth/auth.decorator';
 import { AuditSearch } from '../decorator/audit/audit.decorator';
 import { nowMs, durationMs } from "../utils/time.util";
@@ -27,9 +26,9 @@ export class ChatController {
     private readonly logger: LoggerService,
   ) {}
 
-  @Response(SYSTEM_CODE.CHAT_SUCCESS)
   @AuditSearch('chat')
   @Post(ChatDto.url)
+  @HttpCode(200)
   @Roles(ROLES.ADMIN, ROLES.USER, ROLES.GUEST)
   public async chat(
     @Body() body: ChatBodyDto,
@@ -58,9 +57,9 @@ export class ChatController {
     }
   }
 
-  @Response(SYSTEM_CODE.CHAT_IMAGE_SUCCESS)
   @AuditSearch('chat-image')
   @Post(ChatImageDto.url)
+  @HttpCode(200)
   @Roles(ROLES.ADMIN, ROLES.USER, ROLES.GUEST)
   public async chatWithImage(
     @Body() body: ChatImageBodyDto,

@@ -7,18 +7,14 @@ export class QdrantClient {
   private url = process.env.QDRANT_URL || 'http://localhost:6333';
   private collection = process.env.QDRANT_COLLECTION || 'products';
   private http = createHttp(this.url);
-  private readonly isTest: boolean = process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true';
+  // Allow forcing real Qdrant usage via USE_QDRANT=true
+  private readonly isTest: boolean = process.env.USE_QDRANT !== 'true';
 
   // In-memory storage for test mode
   private inMemoryPoints: Array<{ id: string; vector: number[]; payload: Record<string, unknown> }> = [];
 
   public async ensure(size = 768): Promise<void> {
     this.logger.debug(`ensure start: collection=${this.collection}, size=${size}`);
-    if (this.isTest) {
-      // No-op in test mode
-      this.logger.debug('ensure done (test mode)');
-      return;
-    }
     try {
       await this.http.put(`/collections/${this.collection}`, {
         vectors: { size, distance: 'Cosine' },
@@ -37,18 +33,13 @@ export class QdrantClient {
 
   public async upsert(points: any[]): Promise<any> {
     this.logger.debug(`upsert start: points_count=${points.length}`);
-    if (this.isTest) {
-      // Replace any existing with same id
-      const ids = new Set(points.map(p => p.id as string));
-      this.inMemoryPoints = this.inMemoryPoints.filter(p => !ids.has(p.id));
-      for (const p of points) {
-        this.inMemoryPoints.push({ id: String(p.id), vector: p.vector as number[], payload: p.payload as Record<string, unknown> });
-      }
-      this.logger.debug(`upsert done (test mode): points_count=${points.length}`);
-      return { result: { acknowledged: true } };
-    }
     try {
-      const result = await this.http.put(`/collections/${this.collection}/points?wait=true`, { points });
+      // Coerce numeric IDs if present
+      const normalized = points.map(p => ({
+        ...p,
+        id: typeof p.id === 'string' && /^\d+$/.test(p.id) ? Number(p.id) : p.id
+      }));
+      const result = await this.http.put(`/collections/${this.collection}/points?wait=true`, { points: normalized });
       this.logger.debug(`upsert done: points_count=${points.length}`);
       return result;
     } catch (error) {

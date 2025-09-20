@@ -7,6 +7,7 @@ import { HealthController } from "./health/health.controller";
 import { RagService } from "./rag/rag.service";
 import { GeminiService } from "./ai/gemini.service";
 import { ProductRepository } from "./repositories/product.repository";
+import { InMemoryProductRepository } from "./repositories/inmemory-product.repository";
 import { LoggerModule } from "./logger/logger.module";
 import { LoggerService } from "./logger/logger.service";
 import { CorrelationMiddleware } from "./context/correlation.middleware";
@@ -25,8 +26,13 @@ import { DeleteProductService } from "./services/products/delete-product.service
 @Module({
   imports: [
     LoggerModule,
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/rag-products'),
-    MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }])
+    ...(process.env.SKIP_DB === 'true' || process.env.ALLOW_INGEST_WITHOUT_DB === 'true'
+      ? []
+      : [
+          MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/rag-products'),
+          MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
+        ]
+    )
   ],
   controllers: [ProductsController, ChatController, HealthController],
   providers: [
@@ -38,7 +44,10 @@ import { DeleteProductService } from "./services/products/delete-product.service
     GeminiService,
     
     // Repositories
-    ProductRepository,
+    ...(process.env.SKIP_DB === 'true' || process.env.ALLOW_INGEST_WITHOUT_DB === 'true'
+      ? [{ provide: ProductRepository, useClass: InMemoryProductRepository }]
+      : [ProductRepository]
+    ),
     
     // Product services
     CreateProductService,

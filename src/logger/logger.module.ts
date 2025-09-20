@@ -7,12 +7,13 @@ import { LoggerService } from './logger.service';
 const logDir = process.env.LOG_DIR || './logs';
 const level = process.env.LOG_LEVEL || 'info';
 
+const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true';
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp(),
-  winston.format.printf(({ level, message, timestamp, ...meta }) => {
-    const rest = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-    return `[${timestamp}] ${level}: ${message}${rest}`;
+  winston.format.printf(({ level, message, timestamp }) => {
+    // Avoid printing meta to prevent circular structures during Jest runs
+    return `[${timestamp}] ${level}: ${message}`;
   })
 );
 
@@ -21,7 +22,7 @@ const consoleFormat = winston.format.combine(
     WinstonModule.forRoot({
       transports: [
         new winston.transports.Console({ 
-          level, 
+          level: isTest ? 'error' : level, 
           format: consoleFormat 
         }),
         new (winston.transports as any).DailyRotateFile({
