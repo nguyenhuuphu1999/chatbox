@@ -36,8 +36,7 @@ export function ResponsePagingInterceptor(
           const {
             paging,
             list,
-            data,
-            ...otherData
+            data
           } = responseData;
 
           // Get message from SYSTEM_CODE or use default

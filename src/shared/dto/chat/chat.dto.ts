@@ -1,65 +1,75 @@
-import { IsOptional, IsString, IsNumber, IsArray, ValidateNested } from "class-validator";
-import { Type } from "class-transformer";
-import { BaseDTO } from "../base.dto";
-import { SearchFilters } from "../../types/product.types";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsOptional, IsNumber, IsObject, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class FiltersDto implements SearchFilters {
-  @ApiPropertyOptional({ description: "Minimum price (inclusive)", example: 300000 })
-  @IsNumber() @IsOptional() price_min?: number;
+export class ChatFiltersDto {
+  @IsOptional()
+  @IsString()
+  category?: string;
 
-  @ApiPropertyOptional({ description: "Maximum price (inclusive)", example: 800000 })
-  @IsNumber() @IsOptional() price_max?: number;
+  @IsOptional()
+  @IsNumber()
+  priceMin?: number;
 
-  @ApiPropertyOptional({ description: "Desired size", example: "M" })
-  @IsString() @IsOptional() size?: string;
+  @IsOptional()
+  @IsNumber()
+  priceMax?: number;
 
-  @ApiPropertyOptional({ description: "Desired color", example: "đen" })
-  @IsString() @IsOptional() color?: string;
+  @IsOptional()
+  @IsString()
+  color?: string;
 
-  @ApiPropertyOptional({ description: "Category or collection tag", example: "chân váy" })
-  @IsString() @IsOptional() category?: string;
+  @IsOptional()
+  @IsString()
+  size?: string;
 
-  @ApiPropertyOptional({ description: "Style tags", example: ["nữ tính", "công sở"] })
-  @IsArray() @IsOptional() style_tags?: string[];
-
-  @ApiPropertyOptional({ description: "Material tags", example: ["cotton", "linen"] })
-  @IsArray() @IsOptional() materials?: string[];
+  @IsOptional()
+  @IsString()
+  brand?: string;
 }
 
-export class ChatBodyDto {
-  @ApiProperty({ description: "User message or query", example: "Đầm đen size M, 500-800k" })
-  @IsString() message!: string;
+export class ChatRequestDto {
+  @IsString()
+  message: string;
 
-  @ApiPropertyOptional({ type: FiltersDto })
-  @IsOptional() @ValidateNested() @Type(() => FiltersDto) filters?: FiltersDto;
-}
+  @IsOptional()
+  @IsString()
+  imageBase64?: string;
 
-export class ChatDto extends BaseDTO {
-  public readonly url = '/chat';
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
 
-  public static readonly url = '/chat';
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ChatFiltersDto)
+  filters?: ChatFiltersDto;
 }
 
 export class ChatResponseDto {
-  @ApiProperty({ description: "Assistant reply" })
-  reply!: string;
+  @IsString()
+  reply: string;
 
-  @ApiProperty({
-    description: "Matched products", type: [
-      Object
-    ]
-  })
-  products!: Array<{
-    id: string;
-    title: string;
-    price: number;
-    currency?: string;
-    sizes?: string[];
-    colors?: string[];
-    stock?: number;
-    url?: string;
-    description: string;
-    tags?: string[];
-  }>;
+  @IsObject({ each: true })
+  products: any[];
+}
+
+// Legacy interfaces for backward compatibility
+export interface ChatRequest {
+  message: string;
+  imageBase64?: string;
+  mimeType?: string;
+  filters?: {
+    category?: string;
+    priceMin?: number;
+    priceMax?: number;
+    color?: string;
+    size?: string;
+    brand?: string;
+  };
+}
+
+export interface ChatResponse {
+  reply: string;
+  products: any[];
 }

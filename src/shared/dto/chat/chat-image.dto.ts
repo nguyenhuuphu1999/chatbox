@@ -1,7 +1,7 @@
 import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BaseDTO } from '../base.dto';
-import { FiltersDto } from './chat.dto';
+import { ChatFiltersDto } from './chat.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ChatImageBodyDto {
@@ -14,8 +14,8 @@ export class ChatImageBodyDto {
   @ApiProperty({ description: 'MIME type of the image', example: 'image/jpeg' })
   @IsString() mimeType!: string;
 
-  @ApiPropertyOptional({ type: FiltersDto })
-  @IsOptional() @ValidateNested() @Type(() => FiltersDto) filters?: FiltersDto;
+  @ApiPropertyOptional({ type: ChatFiltersDto })
+  @IsOptional() @ValidateNested() @Type(() => ChatFiltersDto) filters?: ChatFiltersDto;
 }
 
 export class ChatImageDto extends BaseDTO {

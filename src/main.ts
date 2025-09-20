@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { HttpLoggerInterceptor } from "./logger/http-logger.interceptor";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { QdrantClient } from "./clients/qdrant.client";
 import * as net from "net";
 import "dotenv/config";
 
@@ -24,8 +25,21 @@ async function pickPort(base: number, attempts = 20): Promise<number> {
   throw new Error(`No free port in range ${base}..${p - 1}`);
 }
 
+async function bootstrapQdrant() {
+  const qdrant = new QdrantClient();
+  try {
+    await qdrant.ensure();
+    console.log('✅ Qdrant collection initialized');
+  } catch (error) {
+    console.warn('⚠️  Qdrant initialization failed:', error.message);
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
+
+  // Initialize Qdrant collections
+  await bootstrapQdrant();
 
   // CORS
   app.enableCors({
@@ -36,7 +50,7 @@ async function bootstrap() {
 
   // Access log
   app.useGlobalInterceptors(new HttpLoggerInterceptor());
-
+                                                                                          
   // (Tuỳ chọn) Nếu bạn có global prefix:
   // const globalPrefix = "api";
   // app.setGlobalPrefix(globalPrefix);
@@ -46,14 +60,42 @@ async function bootstrap() {
   if (enableSwagger) {
     const config = new DocumentBuilder()
       .setTitle("RAG Product Consultation API")
-      .setDescription("Endpoints for products, chat, and health checks")
-      .setVersion("1.0.0")
+      .setDescription(`
+        ## 🚀 API Endpoints
+        
+        ### Chat & AI
+        - **POST** \`/chat\` - Chat với AI assistant, hỗ trợ tìm kiếm sản phẩm
+        
+        ### Products
+        - **GET** \`/products/search\` - Tìm kiếm sản phẩm với vector similarity
+        - **POST** \`/products/seed\` - Insert sản phẩm vào Qdrant database
+        
+        ### Health
+        - **GET** \`/health\` - Health check endpoint
+        
+        ## 🔍 Features
+        - Vector search với Qdrant
+        - Chat history lưu trong PostgreSQL
+        - Audit logging
+        - Correlation ID tracking
+        - File-based logging với daily rotation
+      `)
+      .setVersion("2.0.0")
+      .addTag("Chat", "AI Chat endpoints")
+      .addTag("Products", "Product search and management")
+      .addTag("Health", "Health check endpoints")
       .build();
     const document = SwaggerModule.createDocument(app, config);
 
     // Nếu có globalPrefix ở trên, path đúng nên là `/${globalPrefix}/docs`
     SwaggerModule.setup("docs", app, document, {
-      swaggerOptions: { persistAuthorization: true },
+      swaggerOptions: { 
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true
+      },
     });
   }
 

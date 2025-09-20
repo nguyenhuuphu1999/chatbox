@@ -49,10 +49,9 @@ Sản phẩm liên quan (chỉ dùng thông tin dưới đây, không bịa):
 ${ctx}
 
 Yêu cầu phản hồi:
-- Đề xuất 1–3 lựa chọn phù hợp, nêu lý do ngắn (phong cách/size/dịp).
-- Ghi rõ giá (VND) và link (nếu có).
-- Nếu thiếu thông tin (ngân sách/size/màu/dịp), hỏi lại đúng 1 câu.
-- Nếu không có sản phẩm phù hợp, hãy nói thẳng và gợi ý danh mục gần nhất.`;
+- Nếu có sản phẩm phù hợp: Đề xuất 1–3 lựa chọn phù hợp, nêu lý do ngắn (phong cách/size/dịp). Ghi rõ giá (VND) và link (nếu có).
+- Nếu thiếu thông tin (ngân sách/size/màu/dịp): Hỏi lại đúng 1 câu.
+- Nếu không có sản phẩm phù hợp: BẮT BUỘC trả lời chính xác câu này: "Dạ chị có thể cho em xin hình mẫu của chị có để em tìm kiếm chính xác cho chị được không ạ"`;
 
       this.logger.debug("Calling Gemini chat API", { correlationId });
       const result = await this.client.chat(prompt);

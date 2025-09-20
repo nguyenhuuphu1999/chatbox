@@ -149,9 +149,9 @@ describe('A) Basic Product Discovery Tests', () => {
       expect(beachItems.length).toBeGreaterThan(0);
       
       // Should suggest accessories if available
-      const suggestsAccessories = response.data.reply.toLowerCase().includes('mũ') ||
-                                 response.data.reply.toLowerCase().includes('nón') ||
-                                 response.data.reply.toLowerCase().includes('phụ kiện');
+      // const suggestsAccessories = response.data.reply.toLowerCase().includes('mũ') ||
+      //                            response.data.reply.toLowerCase().includes('nón') ||
+      //                            response.data.reply.toLowerCase().includes('phụ kiện');
       // This might not always be true depending on available products
       // expect(suggestsAccessories).toBe(true);
     });

@@ -1,4 +1,4 @@
-import { TestClient, testProducts, validateResponseFormat, validateNoHallucination } from './test-utils';
+import { TestClient, testProducts, validateResponseFormat } from './test-utils';
 
 describe('H) Edge Cases and Error Handling Tests', () => {
   let client: TestClient;

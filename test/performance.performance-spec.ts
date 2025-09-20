@@ -225,7 +225,7 @@ describe('J) Performance and Stability Tests', () => {
   describe('J5 - Response Consistency Under Load', () => {
     it('should maintain response quality under load', async () => {
       const testQuery = 'Đầm công sở đen';
-      const responses = [];
+      // const responses = [];
 
       // Make the same request multiple times under load
       const promises = [];

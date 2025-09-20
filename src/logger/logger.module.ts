@@ -7,13 +7,24 @@ import { LoggerService } from './logger.service';
 const logDir = process.env.LOG_DIR || './logs';
 const level = process.env.LOG_LEVEL || 'info';
 
-const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true';
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp(),
-  winston.format.printf(({ level, message, timestamp }) => {
-    // Avoid printing meta to prevent circular structures during Jest runs
-    return `[${timestamp}] ${level}: ${message}`;
+  // Print meta in console to aid debugging (disabled in tests by log level)
+  winston.format.printf((info) => {
+    const { level, message, timestamp, ...meta } = info as any;
+    let metaStr = '';
+    try {
+      const safeMeta = { ...meta };
+      // winston adds circular refs; remove obvious ones
+      if (safeMeta['level']) delete (safeMeta as any)['level'];
+      if (safeMeta['message']) delete (safeMeta as any)['message'];
+      if (safeMeta['timestamp']) delete (safeMeta as any)['timestamp'];
+      metaStr = Object.keys(safeMeta).length ? ` ${JSON.stringify(safeMeta)}` : '';
+    } catch {
+      metaStr = '';
+    }
+    return `[${timestamp}] ${level}: ${message}${metaStr}`;
   })
 );
 
@@ -22,7 +33,7 @@ const consoleFormat = winston.format.combine(
     WinstonModule.forRoot({
       transports: [
         new winston.transports.Console({ 
-          level: isTest ? 'error' : level, 
+          level:level, 
           format: consoleFormat 
         }),
         new (winston.transports as any).DailyRotateFile({

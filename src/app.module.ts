@@ -1,40 +1,43 @@
 import { Module, MiddlewareConsumer } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
-import { MongooseModule } from "@nestjs/mongoose";
-import { ProductsController } from "./products/products.controller";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import { ChatController } from "./chat/chat.controller";
+import { ChatService } from "./chat/services/chat.service";
+import { ChatHistoryService } from "./chat/services/chat-history.service";
 import { HealthController } from "./health/health.controller";
 import { RagService } from "./rag/rag.service";
 import { GeminiService } from "./ai/gemini.service";
-import { ProductRepository } from "./repositories/product.repository";
-import { InMemoryProductRepository } from "./repositories/inmemory-product.repository";
 import { LoggerModule } from "./logger/logger.module";
-import { LoggerService } from "./logger/logger.service";
 import { CorrelationMiddleware } from "./context/correlation.middleware";
 import { ClsService } from "./context/cls.service";
 import { AuditInterceptor } from "./logger/audit.interceptor";
 import { HttpLoggerInterceptor } from "./logger/http-logger.interceptor";
 import { GeminiClient } from "./clients/gemini.client";
 import { QdrantClient } from "./clients/qdrant.client";
-import { Product, ProductSchema } from "./entities/product.entity";
-import { CreateProductService } from "./services/products/create-product.service";
-import { GetProductService } from "./services/products/get-product.service";
-import { GetProductsService } from "./services/products/get-products.service";
-import { UpdateProductService } from "./services/products/update-product.service";
-import { DeleteProductService } from "./services/products/delete-product.service";
+import { Customer } from "./entities/customer.entity";
+import { Conversation } from "./entities/conversation.entity";
+import { Message } from "./entities/message.entity";
+import { MemorySummary } from "./entities/memory-summary.entity";
+import { ProductModule } from "./products/product.module";
 
 @Module({
   imports: [
     LoggerModule,
-    ...(process.env.SKIP_DB === 'true' || process.env.ALLOW_INGEST_WITHOUT_DB === 'true'
-      ? []
-      : [
-          MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/rag-products'),
-          MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
-        ]
-    )
+    ProductModule,
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '6432'),
+      username: process.env.DB_USERNAME || 'postgres',
+      password: process.env.DB_PASSWORD || 'password',
+      database: process.env.DB_DATABASE || 'chatbox',
+      entities: [Customer, Conversation, Message, MemorySummary],
+      synchronize: process.env.NODE_ENV !== 'production', // Only for development
+      logging: process.env.NODE_ENV === 'development',
+    }),
+    TypeOrmModule.forFeature([Customer, Conversation, Message, MemorySummary]),
   ],
-  controllers: [ProductsController, ChatController, HealthController],
+  controllers: [ChatController, HealthController],
   providers: [
     // Core services
     ClsService,
@@ -42,19 +45,8 @@ import { DeleteProductService } from "./services/products/delete-product.service
     QdrantClient,
     RagService,
     GeminiService,
-    
-    // Repositories
-    ...(process.env.SKIP_DB === 'true' || process.env.ALLOW_INGEST_WITHOUT_DB === 'true'
-      ? [{ provide: ProductRepository, useClass: InMemoryProductRepository }]
-      : [ProductRepository]
-    ),
-    
-    // Product services
-    CreateProductService,
-    GetProductService,
-    GetProductsService,
-    UpdateProductService,
-    DeleteProductService,
+    ChatService,
+    ChatHistoryService,
     
     // Interceptors
     {
